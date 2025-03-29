@@ -1,3 +1,4 @@
 [alias]
 lint = "clippy -- -W clippy::all -W clippy::pedantic -W clippy::nursery"
+lintfix = "clippy --fix --lib -- -W clippy::all -W clippy::pedantic -W clippy::nursery"
 fmt = "fmt --all"
