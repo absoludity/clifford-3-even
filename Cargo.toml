@@ -1,0 +1,13 @@
+[package]
+name = "clifford-3-even"
+version = "0.1.0"
+edition = "2024"
+authors = ["Michael Nelson <absoludity@gmail.com>"]
+description = "An efficient implementation of the even sub-algebra of 3-dimensional clifford algebra, specifically for qubit processing"
+repository = "https://github.com/absoludity/clifford-3-even"
+license = "MIT or Apache-2.0"
+keywords = ["clifford", "qubit"]
+
+[dependencies]
+
+[dev-dependencies]
