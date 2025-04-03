@@ -88,19 +88,19 @@ impl Mul for Rotor {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        // Rotor multiplication formula:
-        // (a + b₁e₂₃ + b₂e₃₁ + b₃e₁₂) * (c + d₁e₂₃ + d₂e₃₁ + d₃e₁₂)
+        // Rotor multiplication formula for:
+        // (a_0 + a_x*Ix + a_y*Iy + a_z*Iz) * (b_0 + b_x*Ix + b_y*Iy + b_z*Iz)
         
-        // Scalar part: a*c - b₁*d₁ - b₂*d₂ - b₃*d₃
+        // Scalar part: a_0*b_0 - a_x*b_x - a_y*b_y - a_z*b_z
         let scalar = self.e12.mul_add(-rhs.e12, self.e31.mul_add(-rhs.e31, self.scalar.mul_add(rhs.scalar, -(self.e23 * rhs.e23))));
         
-        // e₂₃ part: a*d₁ + b₁*c + b₂*d₃ - b₃*d₂
+        // Ix part: a_0*b_x + a_x*b_0 + a_y*b_z - a_z*b_y
         let e23 = self.e12.mul_add(-rhs.e31, self.e31.mul_add(rhs.e12, self.scalar.mul_add(rhs.e23, self.e23 * rhs.scalar)));
         
-        // e₃₁ part: a*d₂ + b₂*c + b₃*d₁ - b₁*d₃
+        // Iy part: a_0*b_y + a_y*b_0 + a_z*b_x - a_x*b_z
         let e31 = self.e23.mul_add(-rhs.e12, self.e12.mul_add(rhs.e23, self.scalar.mul_add(rhs.e31, self.e31 * rhs.scalar)));
         
-        // e₁₂ part: a*d₃ + b₃*c + b₁*d₂ - b₂*d₁
+        // Iz part: a_0*b_z + a_z*b_0 + a_x*b_y - a_y*b_x
         let e12 = self.e31.mul_add(-rhs.e23, self.e23.mul_add(rhs.e31, self.scalar.mul_add(rhs.e12, self.e12 * rhs.scalar)));
         
         Self::new(scalar, e23, e31, e12)
@@ -234,6 +234,7 @@ impl Rotor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Ix, Iz};
     use rstest::rstest;
 
     #[rstest]
@@ -248,6 +249,8 @@ mod tests {
     #[case(Rotor::new(1.0, 1.0, 2.0, 3.0), Rotor::new(1.0, -1.0, -2.0, -3.0))]
     #[case(Rotor::new(2.0, -1.0, 0.0, 3.0), Rotor::new(2.0, 1.0, 0.0, -3.0))]
     #[case(Rotor::new(1.0, 0.0, 0.0, 0.0), Rotor::new(1.0, 0.0, 0.0, 0.0))]
+    // Test that Ix constant gets changed to -Ix under reversion
+    #[case(Ix, Rotor::new(0.0, -1.0, 0.0, 0.0))]
     fn test_reverse(#[case] rotor: Rotor, #[case] expected: Rotor) {
         assert_eq!(rotor.reverse(), expected);
     }
@@ -267,9 +270,9 @@ mod tests {
     fn test_from_axis_angle(#[case] axis: [f64; 3], #[case] angle: f64, #[case] expected: Rotor) {
         let result = Rotor::from_axis_angle(axis, angle);
         
-        // Use the approx_eq method
+        // Use the approx_eq method with Display format
         assert!(result.approx_eq(&expected, 1e-10), 
-                "Expected {:?} but got {:?}", expected, result);
+                "Expected {} but got {}", expected, result);
     }
 
     #[test]
@@ -427,5 +430,38 @@ mod tests {
         
         assert!(result.approx_eq(&expected, 1e-10), 
                 "Expected {:?} but got {:?}", expected, result);
+    }
+    
+    #[rstest]
+    // Test Pauli X operation as a quantum gate using Ix.reverse() * ψ * Iz
+    // In the computational basis:
+    // |0⟩ → |1⟩ (represented as 1 → -Iy)
+    #[case::zero_to_one(
+        Rotor::new(1.0, 0.0, 0.0, 0.0),  // Input: |0⟩ state (scalar 1)
+        Rotor::new(0.0, 0.0, -1.0, 0.0)  // Expected: |1⟩ state (-Iy)
+    )]
+    // |1⟩ → |0⟩ (represented as -Iy → 1)
+    #[case::one_to_zero(
+        Rotor::new(0.0, 0.0, -1.0, 0.0),  // Input: |1⟩ state (-Iy)
+        Rotor::new(1.0, 0.0, 0.0, 0.0)    // Expected: |0⟩ state (scalar 1)
+    )]
+    // In the Pauli X eigenbasis:
+    // |+⟩ → |+⟩ (represented as normalized (1-Iy))
+    #[case::plus_eigenstate(
+        Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, -std::f64::consts::FRAC_1_SQRT_2, 0.0),  // Input: |+⟩ state
+        Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, -std::f64::consts::FRAC_1_SQRT_2, 0.0)   // Expected: |+⟩ state unchanged
+    )]
+    // |-⟩ → |-⟩ (represented as normalized (1+Iy))
+    #[case::minus_eigenstate(
+        Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, std::f64::consts::FRAC_1_SQRT_2, 0.0),   // Input: |-⟩ state
+        Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, std::f64::consts::FRAC_1_SQRT_2, 0.0)    // Expected: |-⟩ state unchanged
+    )]
+    fn test_pauli_x_quantum_gate(#[case] state: Rotor, #[case] expected: Rotor) {
+        // Apply the Pauli X operation using: Ix.reverse() * state * Iz
+        let result = Ix.reverse() * state * Iz;
+        
+        // Use the approx_eq method with Display format
+        assert!(result.approx_eq(&expected, 1e-10), 
+                "Expected {} but got {}", expected, result);
     }
 }
