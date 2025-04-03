@@ -10,13 +10,13 @@ Clifford Algebra.
 
 A rotor is composed of a scalar part and three bivector components:
 ```
-r = b₀ + b₁e₂₃ + b₂e₃₁ + b₃e₁₂
+r = b_0 + b_x yz + b_y zx + b_z xy = b_0 + b_x Ix + b_y Iy + bz Iz
 ```
 
 where:
-- b₀ is the scalar component
-- b₁, b₂, b₃ are the bivector components corresponding to the three planes of rotation
-- e₂₃, e₃₁, e₁₂ are the basis bivectors (often denoted as Ix, Iy, Iz)
+- b_0, b_x, b_y and b_z are scalar numbers,
+- x, y and z are orthogonal unit vectors (xx = yy = zz = 1), which anti-commute with each other (xy = -yx),
+- I is the vector product xyz, a pseudo-scalar (it commutes like a scalar). So Ix = xyzx = yz
 
 ## Features
 
@@ -25,6 +25,7 @@ where:
 - Normalize rotors
 - Calculate the reverse of a rotor
 - Apply rotations using the sandwich product (r * v * r.reverse())
+- The library exports 3 consts, Ix, Iy and Iz, for convenience.
 
 ## Usage
 

@@ -1,7 +1,7 @@
 /// Represents a rotor in the even sub-algebra of Cl(3).
 ///
 /// A rotor is composed of a scalar part and three bivector components:
-/// r = b₀ + b₁e₂₃ + b₂e₃₁ + b₃e₁₂
+/// r = b₀ + b₁Ix + b₂Iy + b₃Iz
 /// where b₀ is the scalar and b₁, b₂, b₃ are the bivector components.
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
@@ -10,12 +10,12 @@ use std::ops::{Add, Div, Mul, Sub};
 pub struct Rotor {
     /// Scalar component
     pub scalar: f64,
-    /// e₂₃ bivector component
-    pub e23: f64,
-    /// e₃₁ bivector component
-    pub e31: f64,
-    /// e₁₂ bivector component
-    pub e12: f64,
+    /// Ix bivector component
+    pub ix: f64,
+    /// Iy bivector component
+    pub iy: f64,
+    /// Iz bivector component
+    pub iz: f64,
 }
 
 impl fmt::Display for Rotor {
@@ -25,30 +25,30 @@ impl fmt::Display for Rotor {
 
         // Add each bivector component with its corresponding label
         // Only show components that aren't zero (or very close to zero)
-        if self.e23.abs() > 1e-10 {
+        if self.ix.abs() > 1e-10 {
             write!(
                 f,
                 "{}{}Ix",
-                if self.e23 >= 0.0 { " + " } else { " - " },
-                self.e23.abs()
+                if self.ix >= 0.0 { " + " } else { " - " },
+                self.ix.abs()
             )?;
         }
 
-        if self.e31.abs() > 1e-10 {
+        if self.iy.abs() > 1e-10 {
             write!(
                 f,
                 "{}{}Iy",
-                if self.e31 >= 0.0 { " + " } else { " - " },
-                self.e31.abs()
+                if self.iy >= 0.0 { " + " } else { " - " },
+                self.iy.abs()
             )?;
         }
 
-        if self.e12.abs() > 1e-10 {
+        if self.iz.abs() > 1e-10 {
             write!(
                 f,
                 "{}{}Iz",
-                if self.e12 >= 0.0 { " + " } else { " - " },
-                self.e12.abs()
+                if self.iz >= 0.0 { " + " } else { " - " },
+                self.iz.abs()
             )?;
         }
 
@@ -63,9 +63,9 @@ impl Add for Rotor {
         // Addition is component-wise
         Self::new(
             self.scalar + rhs.scalar,
-            self.e23 + rhs.e23,
-            self.e31 + rhs.e31,
-            self.e12 + rhs.e12,
+            self.ix + rhs.ix,
+            self.iy + rhs.iy,
+            self.iz + rhs.iz,
         )
     }
 }
@@ -77,9 +77,9 @@ impl Sub for Rotor {
         // Subtraction is component-wise
         Self::new(
             self.scalar - rhs.scalar,
-            self.e23 - rhs.e23,
-            self.e31 - rhs.e31,
-            self.e12 - rhs.e12,
+            self.ix - rhs.ix,
+            self.iy - rhs.iy,
+            self.iz - rhs.iz,
         )
     }
 }
@@ -92,18 +92,18 @@ impl Mul for Rotor {
         // (a_0 + a_x*Ix + a_y*Iy + a_z*Iz) * (b_0 + b_x*Ix + b_y*Iy + b_z*Iz)
         
         // Scalar part: a_0*b_0 - a_x*b_x - a_y*b_y - a_z*b_z
-        let scalar = self.e12.mul_add(-rhs.e12, self.e31.mul_add(-rhs.e31, self.scalar.mul_add(rhs.scalar, -(self.e23 * rhs.e23))));
+        let scalar = self.iz.mul_add(-rhs.iz, self.iy.mul_add(-rhs.iy, self.scalar.mul_add(rhs.scalar, -(self.ix * rhs.ix))));
         
-        // Ix part: a_0*b_x + a_x*b_0 + a_y*b_z - a_z*b_y
-        let e23 = self.e12.mul_add(-rhs.e31, self.e31.mul_add(rhs.e12, self.scalar.mul_add(rhs.e23, self.e23 * rhs.scalar)));
+        // Ix part: a_0*b_x + a_x*b_0 - a_y*b_z + a_z*b_y
+        let ix = self.iz.mul_add(rhs.iy, self.iy.mul_add(-rhs.iz, self.scalar.mul_add(rhs.ix, self.ix * rhs.scalar)));
         
-        // Iy part: a_0*b_y + a_y*b_0 + a_z*b_x - a_x*b_z
-        let e31 = self.e23.mul_add(-rhs.e12, self.e12.mul_add(rhs.e23, self.scalar.mul_add(rhs.e31, self.e31 * rhs.scalar)));
+        // Iy part: a_0*b_y + a_y*b_0 - a_z*b_x + a_x*b_z
+        let iy = self.ix.mul_add(rhs.iz, self.iz.mul_add(-rhs.ix, self.scalar.mul_add(rhs.iy, self.iy * rhs.scalar)));
         
-        // Iz part: a_0*b_z + a_z*b_0 + a_x*b_y - a_y*b_x
-        let e12 = self.e31.mul_add(-rhs.e23, self.e23.mul_add(rhs.e31, self.scalar.mul_add(rhs.e12, self.e12 * rhs.scalar)));
+        // Iz part: a_0*b_z + a_z*b_0 - a_x*b_y + a_y*b_x
+        let iz = self.iy.mul_add(rhs.ix, self.ix.mul_add(-rhs.iy, self.scalar.mul_add(rhs.iz, self.iz * rhs.scalar)));
         
-        Self::new(scalar, e23, e31, e12)
+        Self::new(scalar, ix, iy, iz)
     }
 }
 
@@ -116,14 +116,14 @@ impl Div for Rotor {
         // For a general rotor, we need to divide by the norm squared
         
         // Calculate the norm squared
-        let norm_squared = rhs.e12.mul_add(rhs.e12, rhs.e31.mul_add(rhs.e31, rhs.scalar.mul_add(rhs.scalar, rhs.e23 * rhs.e23)));
+        let norm_squared = rhs.iz.mul_add(rhs.iz, rhs.iy.mul_add(rhs.iy, rhs.scalar.mul_add(rhs.scalar, rhs.ix * rhs.ix)));
         
         // Calculate the inverse (reverse divided by norm squared)
         let inverse = Self::new(
             rhs.scalar / norm_squared,
-            -rhs.e23 / norm_squared,
-            -rhs.e31 / norm_squared,
-            -rhs.e12 / norm_squared,
+            -rhs.ix / norm_squared,
+            -rhs.iy / norm_squared,
+            -rhs.iz / norm_squared,
         );
         
         // Multiply by the inverse
@@ -133,12 +133,12 @@ impl Div for Rotor {
 
 impl Rotor {
     /// Creates a new rotor with the given components.
-    #[must_use] pub const fn new(scalar: f64, e23: f64, e31: f64, e12: f64) -> Self {
+    #[must_use] pub const fn new(scalar: f64, ix: f64, iy: f64, iz: f64) -> Self {
         Self {
             scalar,
-            e23,
-            e31,
-            e12,
+            ix,
+            iy,
+            iz,
         }
     }
 
@@ -179,24 +179,24 @@ impl Rotor {
         let sin_angle = angle.sin();
         
         // Calculate bivector components (scaled by sin_angle)
-        let e23 = normalized_axis[0] * sin_angle;
-        let e31 = normalized_axis[1] * sin_angle;
-        let e12 = normalized_axis[2] * sin_angle;
+        let ix = normalized_axis[0] * sin_angle;
+        let iy = normalized_axis[1] * sin_angle;
+        let iz = normalized_axis[2] * sin_angle;
         
-        Self::new(cos_angle, e23, e31, e12)
+        Self::new(cos_angle, ix, iy, iz)
     }
 
     /// Normalizes the rotor to ensure it represents a proper rotation.
     #[must_use] pub fn normalize(&self) -> Self {
-        let norm_squared = self.e12.mul_add(self.e12, self.e31.mul_add(self.e31, self.scalar.mul_add(self.scalar, self.e23 * self.e23)));
+        let norm_squared = self.iz.mul_add(self.iz, self.iy.mul_add(self.iy, self.scalar.mul_add(self.scalar, self.ix * self.ix)));
 
         let norm = norm_squared.sqrt();
 
         Self {
             scalar: self.scalar / norm,
-            e23: self.e23 / norm,
-            e31: self.e31 / norm,
-            e12: self.e12 / norm,
+            ix: self.ix / norm,
+            iy: self.iy / norm,
+            iz: self.iz / norm,
         }
     }
 
@@ -207,9 +207,9 @@ impl Rotor {
     #[must_use] pub fn reverse(&self) -> Self {
         Self {
             scalar: self.scalar,
-            e23: -self.e23,
-            e31: -self.e31,
-            e12: -self.e12,
+            ix: -self.ix,
+            iy: -self.iy,
+            iz: -self.iz,
         }
     }
     
@@ -225,9 +225,9 @@ impl Rotor {
     /// `true` if all components are within `epsilon` of each other
     #[must_use] pub fn approx_eq(&self, other: &Self, epsilon: f64) -> bool {
         (self.scalar - other.scalar).abs() < epsilon &&
-        (self.e23 - other.e23).abs() < epsilon &&
-        (self.e31 - other.e31).abs() < epsilon &&
-        (self.e12 - other.e12).abs() < epsilon
+        (self.ix - other.ix).abs() < epsilon &&
+        (self.iy - other.iy).abs() < epsilon &&
+        (self.iz - other.iz).abs() < epsilon
     }
 }
 
@@ -306,11 +306,11 @@ mod tests {
         Rotor::identity(),
         Rotor::new(2.0, 3.0, 4.0, 5.0)
     )]
-    // Specific example: (1 + 1Ix) * (1 + 1Iy) = 1 + 1Ix + 1Iy + 1Iz
+    // Specific example: (1 + 1Ix) * (1 + 1Iy) = 1 + 1Ix + 1Iy - 1Iz
     #[case(
         Rotor::new(1.0, 1.0, 0.0, 0.0),
         Rotor::new(1.0, 0.0, 1.0, 0.0),
-        Rotor::new(1.0, 1.0, 1.0, 1.0)
+        Rotor::new(1.0, 1.0, 1.0, -1.0)
     )]
     fn test_rotor_multiplication(#[case] a: Rotor, #[case] b: Rotor, #[case] expected: Rotor) {
         let result = a * b;
@@ -325,19 +325,19 @@ mod tests {
     #[case(
         Rotor::from_axis_angle([1.0, 0.0, 0.0], std::f64::consts::FRAC_PI_4),
         Rotor::new(0.0, 0.0, 1.0, 0.0),  // Pure y-axis bivector (e31)
-        Rotor::new(0.0, 0.0, 0.0, 1.0)   // Pure z-axis bivector (e12)
+        Rotor::new(0.0, 0.0, 0.0, -1.0)  // Pure z-axis bivector (e12) with negative sign
     )]
     // Rotation around y-axis by π/4 should flip z to x when applied (which is a π/2 rotation)
     #[case(
         Rotor::from_axis_angle([0.0, 1.0, 0.0], std::f64::consts::FRAC_PI_4),
         Rotor::new(0.0, 0.0, 0.0, 1.0),  // Pure z-axis bivector (e12)
-        Rotor::new(0.0, 1.0, 0.0, 0.0)   // Pure x-axis bivector (e23)
+        Rotor::new(0.0, -1.0, 0.0, 0.0)  // Pure x-axis bivector (e23) with negative sign
     )]
     // Rotation around z-axis by π/4 should flip x to y when applied (which is a π/2 rotation)
     #[case(
         Rotor::from_axis_angle([0.0, 0.0, 1.0], std::f64::consts::FRAC_PI_4),
         Rotor::new(0.0, 1.0, 0.0, 0.0),  // Pure x-axis bivector (e23)
-        Rotor::new(0.0, 0.0, 1.0, 0.0)   // Pure y-axis bivector (e31)
+        Rotor::new(0.0, 0.0, -1.0, 0.0)  // Pure y-axis bivector (e31) with negative sign
     )]
     fn test_rotor_rotation(#[case] r: Rotor, #[case] v: Rotor, #[case] expected: Rotor) {
         // Apply the rotation using the sandwich product: r * v * r.reverse()
@@ -451,10 +451,10 @@ mod tests {
         Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, -std::f64::consts::FRAC_1_SQRT_2, 0.0),  // Input: |+⟩ state
         Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, -std::f64::consts::FRAC_1_SQRT_2, 0.0)   // Expected: |+⟩ state unchanged
     )]
-    // |-⟩ → |-⟩ (represented as normalized (1+Iy))
+    // |-⟩ → -|-⟩ (represented as normalized (1+Iy))
     #[case::minus_eigenstate(
         Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, std::f64::consts::FRAC_1_SQRT_2, 0.0),   // Input: |-⟩ state
-        Rotor::new(std::f64::consts::FRAC_1_SQRT_2, 0.0, std::f64::consts::FRAC_1_SQRT_2, 0.0)    // Expected: |-⟩ state unchanged
+        Rotor::new(-std::f64::consts::FRAC_1_SQRT_2, 0.0, -std::f64::consts::FRAC_1_SQRT_2, 0.0)  // Expected: |-⟩ state with sign flipped
     )]
     fn test_pauli_x_quantum_gate(#[case] state: Rotor, #[case] expected: Rotor) {
         // Apply the Pauli X operation using: Ix.reverse() * state * Iz
