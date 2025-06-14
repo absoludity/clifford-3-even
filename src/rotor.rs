@@ -19,37 +19,93 @@ pub struct Rotor {
 }
 
 impl fmt::Display for Rotor {
+    /// Formats the rotor with configurable decimal precision.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use clifford_3_even::Rotor;
+    ///
+    /// let r = Rotor::new(1.23456789, 2.34567891, 3.45678912, 4.56789123);
+    ///
+    /// // Default formatting (uses f64 default)
+    /// assert_eq!(format!("{}", r), "1.23456789 + 2.34567891Ix + 3.45678912Iy + 4.56789123Iz");
+    ///
+    /// // With 2 decimal places
+    /// assert_eq!(format!("{:.2}", r), "1.23 + 2.35Ix + 3.46Iy + 4.57Iz");
+    ///
+    /// // With 0 decimal places
+    /// assert_eq!(format!("{:.0}", r), "1 + 2Ix + 3Iy + 5Iz");
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Start with the scalar part
-        write!(f, "{}", self.scalar)?;
+        // Use precision from formatter if specified, otherwise use default f64 formatting
+        if let Some(precision) = f.precision() {
+            // Start with the scalar part
+            write!(f, "{:.prec$}", self.scalar, prec = precision)?;
 
-        // Add each bivector component with its corresponding label
-        // Only show components that aren't zero (or very close to zero)
-        if self.ix.abs() > 1e-10 {
-            write!(
-                f,
-                "{}{}Ix",
-                if self.ix >= 0.0 { " + " } else { " - " },
-                self.ix.abs()
-            )?;
-        }
+            // Add each bivector component with its corresponding label
+            // Only show components that aren't zero (or very close to zero)
+            if self.ix.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{:.prec$}Ix",
+                    if self.ix >= 0.0 { " + " } else { " - " },
+                    self.ix.abs(),
+                    prec = precision
+                )?;
+            }
 
-        if self.iy.abs() > 1e-10 {
-            write!(
-                f,
-                "{}{}Iy",
-                if self.iy >= 0.0 { " + " } else { " - " },
-                self.iy.abs()
-            )?;
-        }
+            if self.iy.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{:.prec$}Iy",
+                    if self.iy >= 0.0 { " + " } else { " - " },
+                    self.iy.abs(),
+                    prec = precision
+                )?;
+            }
 
-        if self.iz.abs() > 1e-10 {
-            write!(
-                f,
-                "{}{}Iz",
-                if self.iz >= 0.0 { " + " } else { " - " },
-                self.iz.abs()
-            )?;
+            if self.iz.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{:.prec$}Iz",
+                    if self.iz >= 0.0 { " + " } else { " - " },
+                    self.iz.abs(),
+                    prec = precision
+                )?;
+            }
+        } else {
+            // Use default f64 formatting when no precision is specified
+            write!(f, "{}", self.scalar)?;
+
+            // Add each bivector component with its corresponding label
+            // Only show components that aren't zero (or very close to zero)
+            if self.ix.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{}Ix",
+                    if self.ix >= 0.0 { " + " } else { " - " },
+                    self.ix.abs()
+                )?;
+            }
+
+            if self.iy.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{}Iy",
+                    if self.iy >= 0.0 { " + " } else { " - " },
+                    self.iy.abs()
+                )?;
+            }
+
+            if self.iz.abs() > 1e-10 {
+                write!(
+                    f,
+                    "{}{}Iz",
+                    if self.iz >= 0.0 { " + " } else { " - " },
+                    self.iz.abs()
+                )?;
+            }
         }
 
         Ok(())
@@ -359,6 +415,46 @@ mod tests {
             expected,
             product.scalar
         );
+    }
+
+    #[test]
+    fn test_precision_formatting() {
+        let rotor = Rotor::new(1.23456789, 2.34567891, 3.45678912, 4.56789123);
+
+        // Test default formatting (should use f64 default)
+        let default_format = format!("{}", rotor);
+        assert_eq!(
+            default_format,
+            "1.23456789 + 2.34567891Ix + 3.45678912Iy + 4.56789123Iz"
+        );
+
+        // Test with 2 decimal places
+        let two_decimal = format!("{:.2}", rotor);
+        assert_eq!(two_decimal, "1.23 + 2.35Ix + 3.46Iy + 4.57Iz");
+
+        // Test with 0 decimal places (explicit)
+        let no_decimal = format!("{:.0}", rotor);
+        assert_eq!(no_decimal, "1 + 2Ix + 3Iy + 5Iz");
+
+        // Test with high precision
+        let high_precision = format!("{:.8}", rotor);
+        assert_eq!(
+            high_precision,
+            "1.23456789 + 2.34567891Ix + 3.45678912Iy + 4.56789123Iz"
+        );
+    }
+
+    #[test]
+    fn test_original_formatting_preserved() {
+        // Verify that original test cases still work with default f64 formatting
+        let integer_values = Rotor::new(1.0, 3.0, 2.0, 1.0);
+        assert_eq!(format!("{}", integer_values), "1 + 3Ix + 2Iy + 1Iz");
+
+        let mixed_signs = Rotor::new(1.0, -3.0, 2.0, -1.0);
+        assert_eq!(format!("{}", mixed_signs), "1 - 3Ix + 2Iy - 1Iz");
+
+        let identity = Rotor::new(1.0, 0.0, 0.0, 0.0);
+        assert_eq!(format!("{}", identity), "1");
     }
 
     #[rstest]
