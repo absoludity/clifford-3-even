@@ -38,73 +38,120 @@ impl fmt::Display for Rotor {
     /// assert_eq!(format!("{:.0}", r), "1 + 2Ix + 3Iy + 5Iz");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Check which components are non-zero
+        let scalar_nonzero = self.scalar.abs() > 1e-10;
+        let ix_nonzero = self.ix.abs() > 1e-10;
+        let iy_nonzero = self.iy.abs() > 1e-10;
+        let iz_nonzero = self.iz.abs() > 1e-10;
+
+        // Check if we have any non-zero bivector components
+        let has_bivector_terms = ix_nonzero || iy_nonzero || iz_nonzero;
+
+        // Only show scalar if it's non-zero OR if there are no other terms
+        let show_scalar = scalar_nonzero || !has_bivector_terms;
+
+        let mut first_term = true;
+
         // Use precision from formatter if specified, otherwise use default f64 formatting
         if let Some(precision) = f.precision() {
-            // Start with the scalar part
-            write!(f, "{:.prec$}", self.scalar, prec = precision)?;
+            // Show scalar part if needed
+            if show_scalar {
+                write!(f, "{:.prec$}", self.scalar, prec = precision)?;
+                first_term = false;
+            }
 
             // Add each bivector component with its corresponding label
-            // Only show components that aren't zero (or very close to zero)
-            if self.ix.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{:.prec$}Ix",
-                    if self.ix >= 0.0 { " + " } else { " - " },
-                    self.ix.abs(),
-                    prec = precision
-                )?;
+            if ix_nonzero {
+                if first_term {
+                    write!(f, "{:.prec$}Ix", self.ix, prec = precision)?;
+                    first_term = false;
+                } else {
+                    write!(
+                        f,
+                        "{}{:.prec$}Ix",
+                        if self.ix >= 0.0 { " + " } else { " - " },
+                        self.ix.abs(),
+                        prec = precision
+                    )?;
+                }
             }
 
-            if self.iy.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{:.prec$}Iy",
-                    if self.iy >= 0.0 { " + " } else { " - " },
-                    self.iy.abs(),
-                    prec = precision
-                )?;
+            if iy_nonzero {
+                if first_term {
+                    write!(f, "{:.prec$}Iy", self.iy, prec = precision)?;
+                    first_term = false;
+                } else {
+                    write!(
+                        f,
+                        "{}{:.prec$}Iy",
+                        if self.iy >= 0.0 { " + " } else { " - " },
+                        self.iy.abs(),
+                        prec = precision
+                    )?;
+                }
             }
 
-            if self.iz.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{:.prec$}Iz",
-                    if self.iz >= 0.0 { " + " } else { " - " },
-                    self.iz.abs(),
-                    prec = precision
-                )?;
+            if iz_nonzero {
+                if first_term {
+                    write!(f, "{:.prec$}Iz", self.iz, prec = precision)?;
+                } else {
+                    write!(
+                        f,
+                        "{}{:.prec$}Iz",
+                        if self.iz >= 0.0 { " + " } else { " - " },
+                        self.iz.abs(),
+                        prec = precision
+                    )?;
+                }
             }
         } else {
             // Use default f64 formatting when no precision is specified
-            write!(f, "{}", self.scalar)?;
+            // Show scalar part if needed
+            if show_scalar {
+                write!(f, "{}", self.scalar)?;
+                first_term = false;
+            }
 
             // Add each bivector component with its corresponding label
-            // Only show components that aren't zero (or very close to zero)
-            if self.ix.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{}Ix",
-                    if self.ix >= 0.0 { " + " } else { " - " },
-                    self.ix.abs()
-                )?;
+            if ix_nonzero {
+                if first_term {
+                    write!(f, "{}Ix", self.ix)?;
+                    first_term = false;
+                } else {
+                    write!(
+                        f,
+                        "{}{}Ix",
+                        if self.ix >= 0.0 { " + " } else { " - " },
+                        self.ix.abs()
+                    )?;
+                }
             }
 
-            if self.iy.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{}Iy",
-                    if self.iy >= 0.0 { " + " } else { " - " },
-                    self.iy.abs()
-                )?;
+            if iy_nonzero {
+                if first_term {
+                    write!(f, "{}Iy", self.iy)?;
+                    first_term = false;
+                } else {
+                    write!(
+                        f,
+                        "{}{}Iy",
+                        if self.iy >= 0.0 { " + " } else { " - " },
+                        self.iy.abs()
+                    )?;
+                }
             }
 
-            if self.iz.abs() > 1e-10 {
-                write!(
-                    f,
-                    "{}{}Iz",
-                    if self.iz >= 0.0 { " + " } else { " - " },
-                    self.iz.abs()
-                )?;
+            if iz_nonzero {
+                if first_term {
+                    write!(f, "{}Iz", self.iz)?;
+                } else {
+                    write!(
+                        f,
+                        "{}{}Iz",
+                        if self.iz >= 0.0 { " + " } else { " - " },
+                        self.iz.abs()
+                    )?;
+                }
             }
         }
 
@@ -331,6 +378,14 @@ mod tests {
     #[case(Rotor::new(1.0, 3.0, 2.0, 1.0), "1 + 3Ix + 2Iy + 1Iz")]
     #[case(Rotor::new(1.0, -3.0, 2.0, -1.0), "1 - 3Ix + 2Iy - 1Iz")]
     #[case(Rotor::new(1.0, 0.0, 0.0, 0.0), "1")]
+    #[case(Rotor::new(0.0, 2.0, 3.0, 1.0), "2Ix + 3Iy + 1Iz")]
+    #[case(Rotor::new(0.0, 0.0, 0.0, 0.0), "0")]
+    // Test single bivector component (no scalar)
+    #[case(Rotor::new(0.0, 3.0, 0.0, 0.0), "3Ix")]
+    #[case(Rotor::new(0.0, 0.0, -2.5, 0.0), "-2.5Iy")]
+    #[case(Rotor::new(0.0, 0.0, 0.0, 1.0), "1Iz")]
+    // Test negative first term
+    #[case(Rotor::new(0.0, -1.0, 2.0, 0.0), "-1Ix + 2Iy")]
     fn test_display(#[case] rotor: Rotor, #[case] expected: &str) {
         assert_eq!(format!("{}", rotor), expected);
     }
@@ -374,12 +429,14 @@ mod tests {
         // Test with normalized rotor
         let mut r4 = Rotor::new(1.0, 3.0, 2.0, 1.0);
         let norm = r4.normalize();
-        // We don't test the exact string since normalization will produce floating
-        // point values. Just make sure it formats without errors
-        let formatted = format!("{}", r4);
-        assert!(formatted.contains("Ix"));
-        assert!(formatted.contains("Iy"));
-        assert!(formatted.contains("Iz"));
+
+        // Test the actual formatted output with 2 decimal places
+        let formatted = format!("{:.2}", r4);
+        // The original rotor (1, 3, 2, 1) has magnitude sqrt(15) ≈ 3.872983
+        // After normalization: (1/3.872983, 3/3.872983, 2/3.872983, 1/3.872983)
+        // Which gives approximately: (0.258199, 0.774597, 0.516398, 0.258199)
+        assert_eq!(formatted, "0.26 + 0.77Ix + 0.52Iy + 0.26Iz");
+
         // Also verify that normalize returned the expected value.
         assert!(
             norm.eq(&15.0_f64.sqrt()),
@@ -442,6 +499,11 @@ mod tests {
             high_precision,
             "1.23456789 + 2.34567891Ix + 3.45678912Iy + 4.56789123Iz"
         );
+
+        // Test precision formatting with zero scalar
+        let zero_scalar = Rotor::new(0.0, 1.23456789, 2.34567891, 0.0);
+        let zero_scalar_2dp = format!("{:.2}", zero_scalar);
+        assert_eq!(zero_scalar_2dp, "1.23Ix + 2.35Iy");
     }
 
     #[test]
