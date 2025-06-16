@@ -275,8 +275,8 @@ impl Rotor {
     ///
     /// * `axis` - A 3D vector [x, y, z] representing the axis of rotation
     /// * `angle` - The angle of rotation in radians
-    ///            Note: When applying this rotor using the sandwich product (r * v * `r.reverse()`),
-    ///            the resulting rotation will be by 2*angle.
+    ///   Note: When applying this rotor using the sandwich product (r * v * `r.reverse()`),
+    ///   the resulting rotation will be by 2*angle.
     ///
     /// # Returns
     ///

@@ -2,6 +2,7 @@
 name = "clifford-3-even"
 version = "0.1.1"
 edition = "2024"
+rust-version = "1.85.0"
 authors = ["Michael Nelson <absoludity@gmail.com>"]
 description = "A simple implementation of the even sub-algebra of 3-dimensional clifford algebra, specifically for qubit processing"
 repository = "https://github.com/absoludity/clifford-3-even"
