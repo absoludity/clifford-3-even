@@ -228,6 +228,40 @@ impl Mul for Rotor {
     }
 }
 
+// Scalar multiplication implementations
+macro_rules! impl_scalar_mul {
+    ($scalar_type:ty) => {
+        impl Mul<$scalar_type> for Rotor {
+            type Output = Self;
+
+            fn mul(self, rhs: $scalar_type) -> Self::Output {
+                let rhs = rhs as f64;
+                Self::new(
+                    self.scalar * rhs,
+                    self.ix * rhs,
+                    self.iy * rhs,
+                    self.iz * rhs,
+                )
+            }
+        }
+
+        impl Mul<Rotor> for $scalar_type {
+            type Output = Rotor;
+
+            fn mul(self, rhs: Rotor) -> Self::Output {
+                let lhs = self as f64;
+                Rotor::new(lhs * rhs.scalar, lhs * rhs.ix, lhs * rhs.iy, lhs * rhs.iz)
+            }
+        }
+    };
+}
+
+// Generate implementations for common scalar types
+impl_scalar_mul!(f64);
+impl_scalar_mul!(f32);
+impl_scalar_mul!(i32);
+impl_scalar_mul!(i64);
+
 impl Div for Rotor {
     type Output = Self;
 
@@ -715,5 +749,85 @@ mod tests {
             expected,
             result
         );
+    }
+
+    #[test]
+    fn test_scalar_multiplication_f64() {
+        let rotor = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let scalar: f64 = 2.5;
+
+        // Test rotor * scalar
+        let result1 = rotor * scalar;
+        let expected = Rotor::new(2.5, 5.0, 7.5, 10.0);
+        assert!(result1.approx_eq(&expected, 1e-10));
+
+        // Test scalar * rotor
+        let result2 = scalar * rotor;
+        assert!(result2.approx_eq(&expected, 1e-10));
+    }
+
+    #[test]
+    fn test_scalar_multiplication_f32() {
+        let rotor = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let scalar = 2.5f32;
+
+        // Test rotor * scalar
+        let result1 = rotor * scalar;
+        let expected = Rotor::new(2.5, 5.0, 7.5, 10.0);
+        assert!(result1.approx_eq(&expected, 1e-10));
+
+        // Test scalar * rotor
+        let result2 = scalar * rotor;
+        assert!(result2.approx_eq(&expected, 1e-10));
+    }
+
+    #[test]
+    fn test_scalar_multiplication_i32() {
+        let rotor = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let scalar = 3i32;
+
+        // Test rotor * scalar
+        let result1 = rotor * scalar;
+        let expected = Rotor::new(3.0, 6.0, 9.0, 12.0);
+        assert!(result1.approx_eq(&expected, 1e-10));
+
+        // Test scalar * rotor
+        let result2 = scalar * rotor;
+        assert!(result2.approx_eq(&expected, 1e-10));
+    }
+
+    #[test]
+    fn test_scalar_multiplication_i64() {
+        let rotor = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let scalar = -2i64;
+
+        // Test rotor * scalar
+        let result1 = rotor * scalar;
+        let expected = Rotor::new(-2.0, -4.0, -6.0, -8.0);
+        assert!(result1.approx_eq(&expected, 1e-10));
+
+        // Test scalar * rotor
+        let result2 = scalar * rotor;
+        assert!(result2.approx_eq(&expected, 1e-10));
+    }
+
+    #[test]
+    fn test_scalar_multiplication_zero() {
+        let rotor = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let zero: f64 = 0.0;
+
+        let result = rotor * zero;
+        let expected = Rotor::new(0.0, 0.0, 0.0, 0.0);
+        assert!(result.approx_eq(&expected, 1e-10));
+    }
+
+    #[test]
+    fn test_scalar_multiplication_negative() {
+        let rotor = Rotor::new(1.0, -2.0, 3.0, -4.0);
+        let scalar: f64 = -1.0;
+
+        let result = rotor * scalar;
+        let expected = Rotor::new(-1.0, 2.0, -3.0, 4.0);
+        assert!(result.approx_eq(&expected, 1e-10));
     }
 }
