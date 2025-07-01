@@ -1,3 +1,4 @@
+use num_traits::Zero;
 /// Represents a rotor in the even sub-algebra of Cl(3).
 ///
 /// A rotor is composed of a scalar part and three bivector components:
@@ -5,6 +6,9 @@
 /// where b₀ is the scalar and b₁, b₂, b₃ are the bivector components.
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
+
+/// Default epsilon value for floating point comparisons
+const EPSILON: f64 = 1e-10;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rotor {
@@ -39,10 +43,10 @@ impl fmt::Display for Rotor {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Check which components are non-zero
-        let scalar_nonzero = self.scalar.abs() > 1e-10;
-        let ix_nonzero = self.ix.abs() > 1e-10;
-        let iy_nonzero = self.iy.abs() > 1e-10;
-        let iz_nonzero = self.iz.abs() > 1e-10;
+        let scalar_nonzero = self.scalar.abs() > EPSILON;
+        let ix_nonzero = self.ix.abs() > EPSILON;
+        let iy_nonzero = self.iy.abs() > EPSILON;
+        let iz_nonzero = self.iz.abs() > EPSILON;
 
         // Check if we have any non-zero bivector components
         let has_bivector_terms = ix_nonzero || iy_nonzero || iz_nonzero;
@@ -323,7 +327,7 @@ impl Rotor {
             .sqrt();
 
         // Handle zero magnitude case
-        if magnitude < 1e-10 {
+        if magnitude < EPSILON {
             return Self::identity();
         }
 
@@ -402,6 +406,19 @@ impl Rotor {
     }
 }
 
+impl Zero for Rotor {
+    fn zero() -> Self {
+        Self::new(0.0, 0.0, 0.0, 0.0)
+    }
+
+    fn is_zero(&self) -> bool {
+        self.scalar.abs() < EPSILON
+            && self.ix.abs() < EPSILON
+            && self.iy.abs() < EPSILON
+            && self.iz.abs() < EPSILON
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -451,7 +468,7 @@ mod tests {
 
         // Use the approx_eq method with Display format
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {} but got {}",
             expected,
             result
@@ -492,7 +509,7 @@ mod tests {
     fn test_magnitude_squared(#[case] rotor: Rotor, #[case] expected: f64) {
         let result = rotor.magnitude_squared();
         assert!(
-            (result - expected).abs() < 1e-10,
+            (result - expected).abs() < EPSILON,
             "Expected {} but got {}",
             expected,
             result
@@ -501,7 +518,7 @@ mod tests {
         // Also check that rotor * rotor.reverse() gives the same scalar value
         let product = rotor * rotor.reverse();
         assert!(
-            (product.scalar - expected).abs() < 1e-10,
+            (product.scalar - expected).abs() < EPSILON,
             "Expected rotor * rotor.reverse() scalar to be {} but got {}",
             expected,
             product.scalar
@@ -579,7 +596,7 @@ mod tests {
 
         // Use the approx_eq method
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {:?} but got {:?}",
             expected,
             result
@@ -611,7 +628,7 @@ mod tests {
 
         // Use the approx_eq method
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {:?} but got {:?}",
             expected,
             result
@@ -641,7 +658,7 @@ mod tests {
         let result = a + b;
 
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {:?} but got {:?}",
             expected,
             result
@@ -671,7 +688,7 @@ mod tests {
         let result = a - b;
 
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {:?} but got {:?}",
             expected,
             result
@@ -707,7 +724,7 @@ mod tests {
         let result = a / b;
 
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {:?} but got {:?}",
             expected,
             result
@@ -744,7 +761,7 @@ mod tests {
 
         // Use the approx_eq method with Display format
         assert!(
-            result.approx_eq(&expected, 1e-10),
+            result.approx_eq(&expected, EPSILON),
             "Expected {} but got {}",
             expected,
             result
@@ -759,11 +776,11 @@ mod tests {
         // Test rotor * scalar
         let result1 = rotor * scalar;
         let expected = Rotor::new(2.5, 5.0, 7.5, 10.0);
-        assert!(result1.approx_eq(&expected, 1e-10));
+        assert!(result1.approx_eq(&expected, EPSILON));
 
         // Test scalar * rotor
         let result2 = scalar * rotor;
-        assert!(result2.approx_eq(&expected, 1e-10));
+        assert!(result2.approx_eq(&expected, EPSILON));
     }
 
     #[test]
@@ -774,11 +791,11 @@ mod tests {
         // Test rotor * scalar
         let result1 = rotor * scalar;
         let expected = Rotor::new(2.5, 5.0, 7.5, 10.0);
-        assert!(result1.approx_eq(&expected, 1e-10));
+        assert!(result1.approx_eq(&expected, EPSILON));
 
         // Test scalar * rotor
         let result2 = scalar * rotor;
-        assert!(result2.approx_eq(&expected, 1e-10));
+        assert!(result2.approx_eq(&expected, EPSILON));
     }
 
     #[test]
@@ -789,11 +806,11 @@ mod tests {
         // Test rotor * scalar
         let result1 = rotor * scalar;
         let expected = Rotor::new(3.0, 6.0, 9.0, 12.0);
-        assert!(result1.approx_eq(&expected, 1e-10));
+        assert!(result1.approx_eq(&expected, EPSILON));
 
         // Test scalar * rotor
         let result2 = scalar * rotor;
-        assert!(result2.approx_eq(&expected, 1e-10));
+        assert!(result2.approx_eq(&expected, EPSILON));
     }
 
     #[test]
@@ -804,11 +821,11 @@ mod tests {
         // Test rotor * scalar
         let result1 = rotor * scalar;
         let expected = Rotor::new(-2.0, -4.0, -6.0, -8.0);
-        assert!(result1.approx_eq(&expected, 1e-10));
+        assert!(result1.approx_eq(&expected, EPSILON));
 
         // Test scalar * rotor
         let result2 = scalar * rotor;
-        assert!(result2.approx_eq(&expected, 1e-10));
+        assert!(result2.approx_eq(&expected, EPSILON));
     }
 
     #[test]
@@ -818,7 +835,7 @@ mod tests {
 
         let result = rotor * zero;
         let expected = Rotor::new(0.0, 0.0, 0.0, 0.0);
-        assert!(result.approx_eq(&expected, 1e-10));
+        assert!(result.approx_eq(&expected, EPSILON));
     }
 
     #[test]
@@ -828,6 +845,33 @@ mod tests {
 
         let result = rotor * scalar;
         let expected = Rotor::new(-1.0, 2.0, -3.0, 4.0);
-        assert!(result.approx_eq(&expected, 1e-10));
+        assert!(result.approx_eq(&expected, EPSILON));
+    }
+
+    #[test]
+    fn test_zero_trait() {
+        // Test Zero::zero() creates a rotor with all components as 0
+        let zero_rotor = Rotor::zero();
+        let expected = Rotor::new(0.0, 0.0, 0.0, 0.0);
+        assert!(zero_rotor.approx_eq(&expected, EPSILON));
+
+        // Test is_zero() method
+        assert!(zero_rotor.is_zero());
+
+        // Test that non-zero rotor is not zero
+        let non_zero = Rotor::new(1.0, 0.0, 0.0, 0.0);
+        assert!(!non_zero.is_zero());
+
+        // Test that rotor with any non-zero component is not zero
+        let non_zero_ix = Rotor::new(0.0, 1.0, 0.0, 0.0);
+        assert!(!non_zero_ix.is_zero());
+
+        // Test that near-zero values are considered zero (epsilon-based)
+        let near_zero = Rotor::new(1e-12, -1e-12, 1e-11, -1e-11);
+        assert!(near_zero.is_zero());
+
+        // Test that values just outside epsilon are not considered zero
+        let not_quite_zero = Rotor::new(1e-9, 0.0, 0.0, 0.0);
+        assert!(!not_quite_zero.is_zero());
     }
 }
