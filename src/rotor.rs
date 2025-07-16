@@ -5,6 +5,7 @@ use num_traits::Zero;
 /// r = b₀ + b₁Ix + b₂Iy + b₃Iz
 /// where b₀ is the scalar and b₁, b₂, b₃ are the bivector components.
 use std::fmt;
+use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 
 /// Default epsilon value for floating point comparisons
@@ -416,6 +417,18 @@ impl Zero for Rotor {
             && self.ix.abs() < EPSILON
             && self.iy.abs() < EPSILON
             && self.iz.abs() < EPSILON
+    }
+}
+
+impl Sum for Rotor {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::zero(), |acc, x| acc + x)
+    }
+}
+
+impl<'a> Sum<&'a Rotor> for Rotor {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::zero(), |acc, x| acc + *x)
     }
 }
 
@@ -873,5 +886,39 @@ mod tests {
         // Test that values just outside epsilon are not considered zero
         let not_quite_zero = Rotor::new(1e-9, 0.0, 0.0, 0.0);
         assert!(!not_quite_zero.is_zero());
+    }
+
+    #[rstest]
+    // Test summing an empty iterator
+    #[case(vec![], Rotor::new(0.0, 0.0, 0.0, 0.0))]
+    // Test summing a single rotor
+    #[case(vec![Rotor::new(1.0, 2.0, 3.0, 4.0)], Rotor::new(1.0, 2.0, 3.0, 4.0))]
+    // Test summing multiple rotors
+    #[case(vec![
+        Rotor::new(1.0, 2.0, 3.0, 4.0),
+        Rotor::new(5.0, 6.0, 7.0, 8.0),
+        Rotor::new(9.0, 10.0, 11.0, 12.0),
+    ], Rotor::new(15.0, 18.0, 21.0, 24.0))]
+    // Test summing two rotors
+    #[case(vec![
+        Rotor::new(1.0, 2.0, 3.0, 4.0),
+        Rotor::new(5.0, 6.0, 7.0, 8.0),
+    ], Rotor::new(6.0, 8.0, 10.0, 12.0))]
+    // Test summing identity rotors
+    #[case(vec![Rotor::identity(), Rotor::identity(), Rotor::identity()], Rotor::new(3.0, 0.0, 0.0, 0.0))]
+    fn test_sum_trait(#[case] rotors: Vec<Rotor>, #[case] expected: Rotor) {
+        let sum = rotors.into_iter().sum::<Rotor>();
+        assert_eq!(sum, expected);
+    }
+
+    #[test]
+    fn test_sum_trait_with_references() {
+        // Test summing with references
+        let rotors = vec![
+            Rotor::new(1.0, 2.0, 3.0, 4.0),
+            Rotor::new(5.0, 6.0, 7.0, 8.0),
+        ];
+        let sum = rotors.iter().sum::<Rotor>();
+        assert_eq!(sum, Rotor::new(6.0, 8.0, 10.0, 12.0));
     }
 }
