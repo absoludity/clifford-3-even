@@ -6,7 +6,7 @@ use num_traits::Zero;
 /// where b₀ is the scalar and b₁, b₂, b₃ are the bivector components.
 use std::fmt;
 use std::iter::Sum;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, MulAssign, Sub};
 
 /// Default epsilon value for floating point comparisons
 const EPSILON: f64 = 1e-10;
@@ -230,6 +230,12 @@ impl Mul for Rotor {
         );
 
         Self::new(scalar, ix, iy, iz)
+    }
+}
+
+impl MulAssign for Rotor {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }
 
@@ -920,5 +926,15 @@ mod tests {
         ];
         let sum = rotors.iter().sum::<Rotor>();
         assert_eq!(sum, Rotor::new(6.0, 8.0, 10.0, 12.0));
+    }
+
+    #[test]
+    fn test_mul_assign() {
+        let mut rotor1 = Rotor::new(1.0, 2.0, 3.0, 4.0);
+        let rotor2 = Rotor::new(5.0, 6.0, 7.0, 8.0);
+        let expected = rotor1 * rotor2;
+
+        rotor1 *= rotor2;
+        assert_eq!(rotor1, expected);
     }
 }
