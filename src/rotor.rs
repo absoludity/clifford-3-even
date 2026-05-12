@@ -5,7 +5,7 @@ use num_traits::Zero;
 /// r = b₀ + b₁Ix + b₂Iy + b₃Iz
 /// where b₀ is the scalar and b₁, b₂, b₃ are the bivector components.
 use std::fmt;
-use std::iter::Sum;
+use std::iter::{Product, Sum};
 use std::ops::{Add, Div, Mul, MulAssign, Sub};
 
 /// Default epsilon value for floating point comparisons
@@ -435,6 +435,18 @@ impl Sum for Rotor {
 impl<'a> Sum<&'a Rotor> for Rotor {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), |acc, x| acc + *x)
+    }
+}
+
+impl Product for Rotor {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, x| acc * x)
+    }
+}
+
+impl<'a> Product<&'a Rotor> for Rotor {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, x| acc * *x)
     }
 }
 
